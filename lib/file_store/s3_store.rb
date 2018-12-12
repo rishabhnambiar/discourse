@@ -7,7 +7,11 @@ require_dependency "file_helper"
 module FileStore
 
   class S3Store < BaseStore
-    TOMBSTONE_PREFIX ||= "tombstone/"
+    if Rails.configuration.multisite
+      TOMBSTONE_PREFIX ||= File.join("tombstone", "/")
+    else
+      TOMBSTONE_PREFIX ||= File.join("tombstone", RailsMultisite::ConnectionManagement.current_db, "/")
+    end
 
     attr_reader :s3_helper
 
