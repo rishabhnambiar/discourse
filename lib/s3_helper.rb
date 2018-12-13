@@ -20,6 +20,8 @@ class S3Helper
       else
         tombstone_prefix
       end
+
+    @tombstone_prefix = File.join("uploads", "tombstone", RailsMultisite::ConnectionManagement.current_db, "/") if Rails.configuration.multisite
   end
 
   def upload(file, path, options = {})
@@ -39,14 +41,21 @@ class S3Helper
     end
 
     # delete the file
+    s3_filename.prepend(File.join("tombstone", RailsMultisite::ConnectionManagement.current_db, "/")) if Rails.configuration.multisite
     s3_bucket.object(get_path_for_s3_upload(s3_filename)).delete
   rescue Aws::S3::Errors::NoSuchKey
   end
 
   def copy(source, destination, options: {})
-    s3_bucket
-      .object(destination)
-      .copy_from(options.merge(copy_source: File.join(@s3_bucket_name, source)))
+    if !Rails.configuration.multisite
+      s3_bucket
+        .object(destination)
+        .copy_from(options.merge(copy_source: File.join(@s3_bucket_name, source)))
+    else
+      s3_bucket
+        .object(destination)
+        .copy_from(options.merge(copy_source: File.join(@s3_bucket_name, "uploads", "tombstone", RailsMultisite::ConnectionManagement.current_db, "/", source)))
+    end
   end
 
   # make sure we have a cors config for assets

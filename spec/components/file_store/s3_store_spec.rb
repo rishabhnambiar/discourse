@@ -11,6 +11,7 @@ describe FileStore::S3Store do
 
   let(:optimized_image) { Fabricate(:optimized_image) }
   let(:optimized_image_file) { file_from_fixtures("logo.png") }
+  let(:conn) { RailsMultisite::ConnectionManagement }
 
   before(:each) do
     SiteSetting.s3_upload_bucket = "s3-upload-bucket"
@@ -152,6 +153,22 @@ describe FileStore::S3Store do
         s3_object.expects(:delete)
 
         store.remove_upload(upload)
+      end
+
+      it "removes the file from s3 on multisite", type: :multisite do
+        conn.with_connection('default') do
+          store.expects(:get_depth_for).with(upload.id).returns(0)
+          s3_helper.expects(:s3_bucket).returns(s3_bucket).at_least_once
+          upload.update_attributes!(url: "//s3-upload-bucket.s3.dualstack.us-west-1.amazonaws.com/uploads/tombstone/default/original/1X/#{upload.sha1}.png")
+          s3_object = stub
+
+          s3_bucket.expects(:object).with("uploads/tombstone/default/original/1X/#{upload.sha1}.png").returns(s3_object)
+          s3_object.expects(:copy_from).with(copy_source: "s3-upload-bucket/uploads/tombstone/default/original/1X/#{upload.sha1}.png")
+          s3_bucket.expects(:object).with("tombstone/default/original/1X/#{upload.sha1}.png").returns(s3_object)
+          s3_object.expects(:delete)
+
+          store.remove_upload(upload)
+        end
       end
 
       describe "when s3_upload_bucket includes folders path" do
