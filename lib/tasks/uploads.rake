@@ -245,13 +245,19 @@ def migrate_to_s3
     exit 3
   end
 
-  s3 = Aws::S3::Client.new(S3Helper.s3_options(GlobalSetting))
+  s3 = Aws::S3::Client.new(
+    region: ENV["DISCOURSE_S3_REGION"] || GlobalSetting.s3_region,
+    access_key_id: ENV["DISCOURSE_S3_ACCESS_KEY_ID"] || GlobalSetting.s3_access_key_id,
+    secret_access_key: ENV["DISCOURSE_S3_SECRET_ACCESS_KEY"] || GlobalSetting.s3_secret_access_key
+  )
+
+  # s3 = Aws::S3::Client.new(S3Helper.s3_options(GlobalSetting))
 
   if bucket_has_folder_path
     bucket, folder = S3Helper.get_bucket_and_folder_path(ENV["DISCOURSE_S3_BUCKET"])
     folder = File.join(folder, "/")
   else
-    bucket, folder = GlobalSetting.s3_bucket, ""
+    bucket, folder = ENV["DISCOURSE_S3_BUCKET"], ""
   end
 
   begin
