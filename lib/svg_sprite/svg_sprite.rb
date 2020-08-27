@@ -123,6 +123,7 @@ module SvgSprite
     "folder-open",
     "forward",
     "gavel",
+    "gift",
     "globe",
     "globe-americas",
     "hand-point-right",
